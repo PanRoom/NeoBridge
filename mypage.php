@@ -51,11 +51,35 @@ $my_hobbies = $user_hobbies;
             <h3>趣味</h3>
             <ul>
                 <?php foreach ($user_hobbies as $hobby): ?>
-                    <li class="<?= in_array($hobby, $my_hobbies) ? 'common' : '' ?>">
+                    <li>
                         <?= htmlspecialchars($hobby, ENT_QUOTES, 'UTF-8') ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
+        </div>
+
+        <hr>
+
+        <h2>あなたのグループ</h2>
+        <div class="group-list">
+            <?php
+            // ユーザーが所属するグループを取得
+            $stmt_groups = $pdo->prepare("SELECT g.id, g.name FROM groups g JOIN group_members gm ON g.id = gm.group_id WHERE gm.user_id = ?");
+            $stmt_groups->execute([$user_id]);
+            $my_groups = $stmt_groups->fetchAll(PDO::FETCH_ASSOC);
+
+            if (count($my_groups) > 0) {
+                echo '<ul>';
+                foreach ($my_groups as $group) {
+                    echo '<li><a href="group_profile.php?group_id=' . htmlspecialchars($group['id'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($group['name'], ENT_QUOTES, 'UTF-8') . '</a></li>';
+                }
+                echo '</ul>';
+            } else {
+                echo '<p>まだグループに所属していません。</p>';
+            }
+            ?>
+            <a href="create_group_form.php" class="button">新しいグループを作成</a>
+            <a href="group_search.php" class="button button-secondary">グループを検索</a>
         </div>
 
         <hr>

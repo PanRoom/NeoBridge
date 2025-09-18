@@ -88,7 +88,10 @@ input[type="password"]:focus {
 }
 
 button, a.button {
-    width: 100%;
+    width: 250px; /* 固定幅を設定 */
+    /* max-width: 250px; */ /* 削除 */
+    display: block; /* 中央揃えのためにブロック要素に */
+    margin: 1.5em auto 0.5em auto; /* 上下のマージンと中央揃え */
     padding: 14px;
     background-color: var(--accent-color);
     color: #fff;
@@ -99,7 +102,6 @@ button, a.button {
     font-weight: 700;
     text-align: center;
     text-decoration: none;
-    display: inline-block;
     transition: background-color 0.2s ease-in-out;
 }
 
@@ -210,6 +212,23 @@ li.common {
 .message.error {
     background-color: #dc3545;
     color: #fff;
+}
+
+/* グループプロフィール */
+li.self-member {
+    background-color: rgba(0, 170, 255, 0.1);
+    border-left: 4px solid var(--accent-color);
+    font-weight: bold;
+}
+
+.common-hobbies {
+    color: var(--common-hobby-color);
+    font-weight: normal;
+}
+
+.no-common-hobbies {
+    color: var(--secondary-text-color);
+    font-size: 0.85em;
 }
 
 @media (max-width: 600px) {

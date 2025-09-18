@@ -34,7 +34,11 @@ $my_hobbies = $_SESSION['my_hobbies'] ?? [];
 <body>
     <div class="container">
         <div class="profile-card">
-            <h2>あなたのIDはこちらです</h2>
+            <?php if (isset($_SESSION['public_id']) && $_SESSION['public_id'] == $user['public_id']): ?>
+                <h2>あなたのIDはこちらです</h2>
+            <?php else: ?>
+                <h2>ユーザーID</h2>
+            <?php endif; ?>
             <p class="user-id"><?= htmlspecialchars($user['public_id'], ENT_QUOTES, 'UTF-8') ?></p>
             <hr>
             <h1><?= htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8') ?></h1>
