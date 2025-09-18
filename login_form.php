@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ログイン</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -24,7 +25,7 @@
 
             <button type="submit">ログイン</button>
         </form>
-        <a href="index.php">トップに戻る</a>
     </div>
+    <script src="script.js"></script>
 </body>
 </html>

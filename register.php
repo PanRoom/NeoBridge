@@ -1,4 +1,5 @@
 <?php
+session_start();
 require 'db_connect.php';
 
 $name = $_POST['name'] ?? '';
@@ -19,9 +20,14 @@ try {
     );
     $stmt->execute([$public_id, $name, $hobbies_string, $password_hash]);
 
-    // ★★★ 変更点 ★★★
-    // ログインページではなく、IDを渡して登録完了ページにリダイレクトする
-    header("Location: register_complete.php?id=" . $public_id);
+    // 新規登録ユーザーを自動ログインさせる
+    $_SESSION['user_id'] = $pdo->lastInsertId(); // 挿入されたユーザーのIDを取得
+    $_SESSION['user_name'] = $name;
+    $_SESSION['public_id'] = $public_id;
+    $_SESSION['my_hobbies'] = $hobbies_array;
+
+    // 直接マイページにリダイレクト
+    header('Location: mypage.php');
     exit();
 
 } catch (PDOException $e) {

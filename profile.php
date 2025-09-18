@@ -52,7 +52,7 @@ $my_hobbies = $_SESSION['my_hobbies'] ?? [];
                 <?php endforeach; ?>
             </ul>
         </div>
-        <a href="index.php">トップに戻る</a>
+        <a href="mypage.php">マイページに戻る</a>
     </div>
 </body>
 </html>

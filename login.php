@@ -19,8 +19,9 @@ if ($user && password_verify($password, $user['password_hash'])) {
     // ログイン成功
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_name'] = $user['name'];
+    $_SESSION['public_id'] = $user['public_id']; // public_idをセッションに保存
     $_SESSION['my_hobbies'] = explode(',', $user['hobbies']); // 自分の趣味をセッションに保存
-    header('Location: search.php');
+    header('Location: mypage.php');
     exit();
 } else {
     // ログイン失敗

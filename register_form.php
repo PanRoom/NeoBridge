@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新規登録</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -24,7 +25,7 @@
             </div>
             <button type="submit">登録してIDを発行</button>
         </form>
-        <a href="index.php">トップに戻る</a>
     </div>
+    <script src="script.js"></script>
 </body>
 </html>
