@@ -68,12 +68,12 @@ foreach ($categories as $category) {
                 <?php foreach ($categories as $category): ?>
                     <div class="hobby-category-section">
                         <h3 class="category-header">
-                            <input type="checkbox" class="category-checkbox" data-category-id="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="checkbox" class="category-checkbox" name="category_ids[]" value="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>" data-category-id="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>">
                             <?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?> <span class="toggle-icon">+</span>
                         </h3>
                         <div class="hobby-options" style="display: none;">
                             <?php foreach ($hobby_items_by_category[$category['id']] as $item): ?>
-                                <label><input type="checkbox" name="hobby_item_ids[]" value="<?= htmlspecialchars($item['id'], ENT_QUOTES, 'UTF-8') ?>" <?= in_array($item['id'], $current_hobby_item_ids) ? 'checked' : '' ?>> <?= htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8') ?></label>
+                            <label><input type="checkbox" name="hobby_item_ids[]" value="<?= htmlspecialchars($item['id'], ENT_QUOTES, 'UTF-8') ?>" <?= in_array($item['id'], $current_hobby_item_ids) ? 'checked' : '' ?>> <?= htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8') ?></label>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -101,9 +101,12 @@ foreach ($categories as $category) {
     </div>
 
     <script>
+        console.log('Script block started!'); // 追加
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired in edit_profile_form.php!'); // 追加
             const categoryHeaders = document.querySelectorAll('.category-header');
             const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
+            const hobbyItemCheckboxes = document.querySelectorAll('input[name="hobby_item_ids[]"]'); // 個別の趣味アイテムチェックボックス
             const newHobbyCategorySelect = document.getElementById('newHobbyCategory');
             const newHobbyParentItemSelect = document.getElementById('newHobbyParentItem');
             const newHobbyNameInput = document.getElementById('newHobbyName');
@@ -143,6 +146,12 @@ foreach ($categories as $category) {
                 // });
             });
 
+            hobbyItemCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    console.log('Hobby item checkbox changed: ' + this.value + ', checked: ' + this.checked);
+                });
+            });
+
             newHobbyCategorySelect.addEventListener('change', function() {
                 const selectedCategoryId = this.value;
                 newHobbyParentItemSelect.innerHTML = '<option value="">親となる趣味を選択 (オプション)</option>';
@@ -165,12 +174,12 @@ foreach ($categories as $category) {
             // フォーム送信時のバリデーション
             document.querySelector('form').addEventListener('submit', function(event) {
                 const selectedHobbies = document.querySelectorAll('input[name="hobby_item_ids[]"]:checked').length;
+                const selectedCategories = document.querySelectorAll('.category-checkbox:checked').length; // カテゴリチェックボックスの選択数を取得
                 const newHobbyName = newHobbyNameInput.value.trim();
-                const newHobbyCategory = newHobbyCategorySelect.value;
-                const newHobbyParentItem = newHobbyParentItemSelect.value; // 親アイテムのID
 
-                if (selectedHobbies === 0 && newHobbyName === '') {
-                    alert('趣味を一つ以上選択するか、新しい趣味を入力してください。');
+                if (selectedHobbies === 0 && selectedCategories === 0 && newHobbyName === '') {
+                    console.log('Validation failed: selectedHobbies=' + selectedHobbies + ', selectedCategories=' + selectedCategories + ', newHobbyName=' + newHobbyName);
+                    alert('趣味を一つ以上選択するか、新しい趣味を入力してください。'); // アラートは残しておく
                     event.preventDefault();
                     return;
                 }
