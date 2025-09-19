@@ -32,18 +32,31 @@ foreach ($categories as $category) {
 
             <label>趣味 (複数選択可):</label>
             <div class="hobby-selection">
-                <select id="hobbyCategory" name="hobby_category_id">
-                    <option value="">カテゴリを選択</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <div id="hobbyItemsContainer" class="hobby-options">
-                    <!-- 選択されたカテゴリの趣味アイテムがここに動的にロードされます -->
-                </div>
+                <?php foreach ($categories as $category): ?>
+                    <div class="hobby-category-section">
+                        <h3 class="category-header">
+                            <input type="checkbox" class="category-checkbox" data-category-id="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>">
+                            <?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?> <span class="toggle-icon">+</span>
+                        </h3>
+                        <div class="hobby-options" style="display: none;">
+                            <?php foreach ($hobby_items_by_category[$category['id']] as $item): ?>
+                                <label><input type="checkbox" name="hobby_item_ids[]" value="<?= htmlspecialchars($item['id'], ENT_QUOTES, 'UTF-8') ?>"> <?= htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8') ?></label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
 
-            <label for="newHobbyName">新しい趣味を追加 (カテゴリ選択後):</label>
+            <label for="newHobbyName">新しい趣味を追加:</label>
+            <select id="newHobbyCategory" name="new_hobby_category_id">
+                <option value="">カテゴリを選択</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select id="newHobbyParentItem" name="new_hobby_parent_item_id" style="display: none;">
+                <option value="">親となる趣味を選択 (オプション)</option>
+            </select>
             <input type="text" id="newHobbyName" name="new_hobby_name" placeholder="例: ギター演奏">
 
             <button type="submit">登録してIDを発行</button>
@@ -51,50 +64,89 @@ foreach ($categories as $category) {
         <a href="index.php">トップに戻る</a>
     </div>
     <script>
-        const hobbyCategorySelect = document.getElementById('hobbyCategory');
-        const hobbyItemsContainer = document.getElementById('hobbyItemsContainer');
-        const newHobbyNameInput = document.getElementById('newHobbyName');
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryHeaders = document.querySelectorAll('.category-header');
+            const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
+            const newHobbyCategorySelect = document.getElementById('newHobbyCategory');
+            const newHobbyParentItemSelect = document.getElementById('newHobbyParentItem');
+            const newHobbyNameInput = document.getElementById('newHobbyName');
 
-        const allHobbyItems = <?= json_encode($hobby_items_by_category) ?>;
+            const allHobbyItems = <?= json_encode($hobby_items_by_category) ?>;
 
-        function updateHobbyItems() {
-            const selectedCategoryId = hobbyCategorySelect.value;
-            hobbyItemsContainer.innerHTML = ''; // クリア
+            categoryHeaders.forEach(header => {
+                header.addEventListener('click', function(event) {
+                    // チェックボックスのクリックは除外
+                    if (event.target.classList.contains('category-checkbox')) {
+                        return;
+                    }
+                    const hobbyOptions = this.nextElementSibling;
+                    const toggleIcon = this.querySelector('.toggle-icon');
 
-            if (selectedCategoryId) {
-                const items = allHobbyItems[selectedCategoryId];
-                if (items && items.length > 0) {
-                    items.forEach(item => {
-                        const label = document.createElement('label');
-                        label.innerHTML = `<input type="checkbox" name="hobby_item_ids[]" value="${item.id}"> ${item.name}`;
-                        hobbyItemsContainer.appendChild(label);
-                    });
-                } else {
-                    hobbyItemsContainer.innerHTML = '<p>このカテゴリにはまだ趣味がありません。</p>';
+                    if (hobbyOptions.style.display === 'none') {
+                        hobbyOptions.style.display = 'block';
+                        toggleIcon.textContent = '-';
+                    } else {
+                        hobbyOptions.style.display = 'none';
+                        toggleIcon.textContent = '+';
+                    }
+                });
+            });
+
+            categoryCheckboxes.forEach(checkbox => {
+                // 自動選択ロジックを削除
+                // checkbox.addEventListener('change', function() {
+                //     const categoryId = this.dataset.categoryId;
+                //     const hobbyOptionsDiv = this.closest('.hobby-category-section').querySelector('.hobby-options');
+                //     const itemCheckboxes = hobbyOptionsDiv.querySelectorAll('input[type="checkbox"]');
+
+                //     itemCheckboxes.forEach(itemCheckbox => {
+                //         itemCheckbox.checked = this.checked;
+                //     });
+                // });
+            });
+
+            newHobbyCategorySelect.addEventListener('change', function() {
+                const selectedCategoryId = this.value;
+                newHobbyParentItemSelect.innerHTML = '<option value="">親となる趣味を選択 (オプション)</option>';
+                newHobbyParentItemSelect.style.display = 'none';
+
+                if (selectedCategoryId) {
+                    const items = allHobbyItems[selectedCategoryId];
+                    if (items && items.length > 0) {
+                        items.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.name;
+                            newHobbyParentItemSelect.appendChild(option);
+                        });
+                        newHobbyParentItemSelect.style.display = 'block';
+                    }
                 }
-            }
-        }
+            });
 
-        hobbyCategorySelect.addEventListener('change', updateHobbyItems);
-        updateHobbyItems(); // 初期ロード
+            // フォーム送信時のバリデーション
+            document.querySelector('form').addEventListener('submit', function(event) {
+                const selectedHobbies = document.querySelectorAll('input[name="hobby_item_ids[]"]:checked').length;
+                const newHobbyName = newHobbyNameInput.value.trim();
+                const newHobbyCategory = newHobbyCategorySelect.value;
+                const newHobbyParentItem = newHobbyParentItemSelect.value; // 親アイテムのID
 
-        // フォーム送信時のバリデーション
-        document.querySelector('form').addEventListener('submit', function(event) {
-            const selectedHobbies = document.querySelectorAll('input[name="hobby_item_ids[]"]:checked').length;
-            const newHobbyName = newHobbyNameInput.value.trim();
-            const selectedCategoryId = hobbyCategorySelect.value;
+                if (selectedHobbies === 0 && newHobbyName === '') {
+                    alert('趣味を一つ以上選択するか、新しい趣味を入力してください。');
+                    event.preventDefault();
+                    return;
+                }
 
-            if (selectedHobbies === 0 && newHobbyName === '') {
-                alert('趣味を一つ以上選択するか、新しい趣味を入力してください。');
-                event.preventDefault();
-                return;
-            }
-
-            if (newHobbyName !== '' && !selectedCategoryId) {
-                alert('新しい趣味を追加する場合は、カテゴリを選択してください。');
-                event.preventDefault();
-                return;
-            }
+                // 新しい趣味が入力された場合
+                if (newHobbyName !== '') {
+                    // 親アイテムが選択されていない場合、カテゴリが必須
+                    if (!newHobbyParentItem && !newHobbyCategory) {
+                        alert('新しい趣味を追加する場合は、カテゴリを選択してください。');
+                        event.preventDefault();
+                        return;
+                    }
+                }
+            });
         });
     </script>
     <script src="script.js"></script>

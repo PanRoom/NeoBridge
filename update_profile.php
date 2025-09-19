@@ -23,19 +23,32 @@ if (empty($name)) {
 
 // 新しい趣味が入力された場合、hobby_itemsに追加
 if (!empty($new_hobby_name)) {
-    if (empty($hobby_category_id)) {
-        header('Location: edit_profile_form.php?error=' . urlencode('新しい趣味を追加する場合は、カテゴリを選択してください。'));
+    $target_category_id = null;
+    $target_parent_id = null;
+
+    if (!empty($new_hobby_parent_item_id)) {
+        // 親アイテムが指定された場合、そのカテゴリIDを取得
+        $stmt_parent_cat = $pdo->prepare("SELECT category_id FROM hobby_items WHERE id = ?");
+        $stmt_parent_cat->execute([$new_hobby_parent_item_id]);
+        $target_category_id = $stmt_parent_cat->fetchColumn();
+        $target_parent_id = $new_hobby_parent_item_id;
+    } elseif (!empty($new_hobby_category_id)) {
+        // カテゴリが直接指定された場合
+        $target_category_id = $new_hobby_category_id;
+    } else {
+        header('Location: edit_profile_form.php?error=' . urlencode('新しい趣味を追加する場合は、カテゴリまたは親となる趣味を選択してください。'));
         exit();
     }
+
     try {
         // 既存のアイテムか確認
-        $stmt_check_item = $pdo->prepare("SELECT id FROM hobby_items WHERE category_id = ? AND name = ?");
-        $stmt_check_item->execute([$hobby_category_id, $new_hobby_name]);
+        $stmt_check_item = $pdo->prepare("SELECT id FROM hobby_items WHERE category_id = ? AND name = ? AND (parent_id = ? OR (parent_id IS NULL AND ? IS NULL))");
+        $stmt_check_item->execute([$target_category_id, $new_hobby_name, $target_parent_id, $target_parent_id]);
         $existing_item_id = $stmt_check_item->fetchColumn();
 
         if (!$existing_item_id) {
-            $stmt_insert_item = $pdo->prepare("INSERT INTO hobby_items (category_id, name) VALUES (?, ?)");
-            $stmt_insert_item->execute([$hobby_category_id, $new_hobby_name]);
+            $stmt_insert_item = $pdo->prepare("INSERT INTO hobby_items (category_id, name, parent_id) VALUES (?, ?, ?)");
+            $stmt_insert_item->execute([$target_category_id, $new_hobby_name, $target_parent_id]);
             $new_hobby_item_id = $pdo->lastInsertId();
             $hobby_item_ids[] = $new_hobby_item_id; // 新しい趣味をユーザーの趣味リストに追加
         } else {
