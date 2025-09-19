@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // データベースから現在のユーザー情報を取得
-$stmt = $pdo->prepare("SELECT name, hobbies FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -23,7 +23,22 @@ if (!$user) {
 }
 
 $current_name = $user['name'];
-$current_hobbies = explode(',', $user['hobbies']);
+
+// ユーザーの現在の趣味アイテムIDを取得
+$stmt_current_hobbies = $pdo->prepare("SELECT hobby_item_id FROM user_hobbies WHERE user_id = ?");
+$stmt_current_hobbies->execute([$user_id]);
+$current_hobby_item_ids = $stmt_current_hobbies->fetchAll(PDO::FETCH_COLUMN);
+
+// 趣味カテゴリとアイテムを取得
+$stmt_categories = $pdo->query("SELECT id, name FROM hobby_categories ORDER BY name");
+$categories = $stmt_categories->fetchAll(PDO::FETCH_ASSOC);
+
+$hobby_items_by_category = [];
+foreach ($categories as $category) {
+    $stmt_items = $pdo->prepare("SELECT id, name FROM hobby_items WHERE category_id = ? ORDER BY name");
+    $stmt_items->execute([$category['id']]);
+    $hobby_items_by_category[$category['id']] = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
+}
 
 ?>
 <!DOCTYPE html>
@@ -49,15 +64,20 @@ $current_hobbies = explode(',', $user['hobbies']);
             <input type="text" id="name" name="name" value="<?= htmlspecialchars($current_name, ENT_QUOTES, 'UTF-8') ?>" required>
 
             <label>趣味 (複数選択可):</label>
-            <div class="hobby-options">
-                <?php
-                $all_hobbies = ['映画', '音楽', 'スポーツ', '読書']; // 登録フォームと同じ趣味のリスト
-                foreach ($all_hobbies as $hobby_option) {
-                    $checked = in_array($hobby_option, $current_hobbies) ? 'checked' : '';
-                    echo '<label><input type="checkbox" name="hobbies[]" value="' . htmlspecialchars($hobby_option, ENT_QUOTES, 'UTF-8') . '" ' . $checked . '> ' . htmlspecialchars($hobby_option, ENT_QUOTES, 'UTF-8') . '</label>';
-                }
-                ?>
+            <div class="hobby-selection">
+                <select id="hobbyCategory" name="hobby_category_id">
+                    <option value="">カテゴリを選択</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?= htmlspecialchars($category['id'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div id="hobbyItemsContainer" class="hobby-options">
+                    <!-- 選択されたカテゴリの趣味アイテムがここに動的にロードされます -->
+                </div>
             </div>
+
+            <label for="newHobbyName">新しい趣味を追加 (カテゴリ選択後):</label>
+            <input type="text" id="newHobbyName" name="new_hobby_name" placeholder="例: ギター演奏">
 
             <label for="password">新しいパスワード (変更しない場合は空欄):</label>
             <input type="password" id="password" name="password">
@@ -66,5 +86,54 @@ $current_hobbies = explode(',', $user['hobbies']);
         </form>
         <a href="mypage.php">マイページに戻る</a>
     </div>
+
+    <script>
+        const hobbyCategorySelect = document.getElementById('hobbyCategory');
+        const hobbyItemsContainer = document.getElementById('hobbyItemsContainer');
+        const newHobbyNameInput = document.getElementById('newHobbyName');
+
+        const allHobbyItems = <?= json_encode($hobby_items_by_category) ?>;
+        const currentHobbyItemIds = <?= json_encode($current_hobby_item_ids) ?>;
+
+        function updateHobbyItems() {
+            const selectedCategoryId = hobbyCategorySelect.value;
+            hobbyItemsContainer.innerHTML = ''; // クリア
+
+            if (selectedCategoryId) {
+                const items = allHobbyItems[selectedCategoryId];
+                if (items && items.length > 0) {
+                    items.forEach(item => {
+                        const label = document.createElement('label');
+                        const checked = currentHobbyItemIds.includes(item.id) ? 'checked' : '';
+                        label.innerHTML = `<input type="checkbox" name="hobby_item_ids[]" value="${item.id}" ${checked}> ${item.name}`;
+                        hobbyItemsContainer.appendChild(label);
+                    });
+                } else {
+                    hobbyItemsContainer.innerHTML = '<p>このカテゴリにはまだ趣味がありません。</p>';
+                }
+            }
+        }
+
+        hobbyCategorySelect.addEventListener('change', updateHobbyItems);
+        updateHobbyItems(); // 初期ロード
+
+        // フォーム送信時のバリデーション
+        document.querySelector('form').addEventListener('submit', function(event) {
+            const selectedHobbies = document.querySelectorAll('input[name="hobby_item_ids[]"]:checked').length;
+            const newHobbyName = newHobbyNameInput.value.trim();
+            const selectedCategoryId = hobbyCategorySelect.value;
+
+            if (selectedHobbies === 0 && newHobbyName === '') {
+                alert('趣味を一つ以上選択するか、新しい趣味を入力してください。');
+                event.preventDefault();
+                return;
+            }
+
+            if (newHobbyName !== '' && !selectedCategoryId) {
+                alert('新しい趣味を追加する場合は、カテゴリを選択してください。');
+                event.preventDefault();
+                return;
+            }
+        });
+    </script>
 </body>
-</html>

@@ -50,7 +50,13 @@ $my_hobbies = $user_hobbies;
             <h1><?= htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8') ?></h1>
             <h3>趣味</h3>
             <ul>
-                <?php foreach ($user_hobbies as $hobby): ?>
+                <?php
+                // ユーザーの趣味アイテムを取得
+                $stmt_user_hobbies = $pdo->prepare("SELECT hi.name FROM user_hobbies uh JOIN hobby_items hi ON uh.hobby_item_id = hi.id WHERE uh.user_id = ?");
+                $stmt_user_hobbies->execute([$user_id]);
+                $user_hobbies_names = $stmt_user_hobbies->fetchAll(PDO::FETCH_COLUMN);
+
+                foreach ($user_hobbies_names as $hobby): ?>
                     <li>
                         <?= htmlspecialchars($hobby, ENT_QUOTES, 'UTF-8') ?>
                     </li>
@@ -93,6 +99,53 @@ $my_hobbies = $user_hobbies;
         </form>
 
         <a href="edit_profile_form.php" class="button">プロフィールを編集</a>
+        <button type="button" id="showQrCodeButton" class="button button-secondary">マイQRコードを表示</button>
+
+        <div id="qrCodeDisplay" style="display:none; text-align: center; margin-top: 2em;">
+            <h2>あなたのQRコード</h2>
+            <p>このQRコードをスキャンしてもらうと、あなたのプロフィールページにアクセスできます。</p>
+            <img id="qrCodeImage" src="" alt="QR Code for your profile" style="margin: 1em auto;">
+            <p>プロフィールURL: <a id="profileUrlLink" href="" target="_blank"></a></p>
+            <button type="button" id="hideQrCodeButton" class="button button-secondary">閉じる</button>
+        </div>
+
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const showQrCodeButton = document.getElementById('showQrCodeButton');
+            const hideQrCodeButton = document.getElementById('hideQrCodeButton');
+            const qrCodeDisplay = document.getElementById('qrCodeDisplay');
+            const qrCodeImage = document.getElementById('qrCodeImage');
+            const profileUrlLink = document.getElementById('profileUrlLink');
+
+            if (showQrCodeButton) {
+                showQrCodeButton.addEventListener('click', function() {
+                    // PHPからpublic_idを取得
+                    const publicId = "<?= htmlspecialchars($_SESSION['public_id'], ENT_QUOTES, 'UTF-8') ?>";
+                    
+                    // プロフィールURLを生成
+                    const baseUrl = window.location.protocol + "//" + window.location.host + "<?= dirname($_SERVER['PHP_SELF']) ?>";
+                    const profileUrl = baseUrl + "/profile.php?id=" + encodeURIComponent(publicId);
+
+                    // QRコードAPIのURLを生成
+                    const qrCodeApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(profileUrl);
+
+                    qrCodeImage.src = qrCodeApiUrl;
+                    profileUrlLink.href = profileUrl;
+                    profileUrlLink.textContent = profileUrl;
+                    qrCodeDisplay.style.display = 'block';
+                    showQrCodeButton.style.display = 'none'; // QRコード表示中はボタンを非表示
+                });
+            }
+
+            if (hideQrCodeButton) {
+                hideQrCodeButton.addEventListener('click', function() {
+                    qrCodeDisplay.style.display = 'none';
+                    showQrCodeButton.style.display = 'block'; // ボタンを再表示
+                });
+            }
+        });
+    </script>
 </body>
 </html>

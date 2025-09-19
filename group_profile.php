@@ -33,12 +33,32 @@ try {
     $is_member = ($stmt_is_member->fetchColumn() > 0);
 
     // グループメンバーを取得
-    $stmt_members = $pdo->prepare("SELECT u.id, u.name, u.public_id, u.hobbies FROM users u JOIN group_members gm ON u.id = gm.user_id WHERE gm.group_id = ? ORDER BY u.id = ? DESC, u.name ASC");
+    $stmt_members = $pdo->prepare("SELECT u.id, u.name, u.public_id FROM users u JOIN group_members gm ON u.id = gm.user_id WHERE gm.group_id = ? ORDER BY u.id = ? DESC, u.name ASC");
     $stmt_members->execute([$group_id, $user_id]);
-    $members = $stmt_members->fetchAll(PDO::FETCH_ASSOC);
+    $members_data = $stmt_members->fetchAll(PDO::FETCH_ASSOC);
 
-    // ログインユーザーの趣味をセッションから取得
-    $my_hobbies = $_SESSION['my_hobbies'] ?? [];
+    // ログインユーザーの趣味アイテムIDをセッションから取得
+    $my_hobby_item_ids = $_SESSION['my_hobby_item_ids'] ?? [];
+
+    // ログインユーザーの趣味アイテム名を取得
+    $my_hobbies_names = [];
+    if (!empty($my_hobby_item_ids)) {
+        $placeholders = implode(',', array_fill(0, count($my_hobby_item_ids), '?'));
+        $stmt_my_hobbies = $pdo->prepare("SELECT name FROM hobby_items WHERE id IN ($placeholders)");
+        $stmt_my_hobbies->execute($my_hobby_item_ids);
+        $my_hobbies_names = $stmt_my_hobbies->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    $members = [];
+    foreach ($members_data as $member) {
+        // 各メンバーの趣味アイテム名を取得
+        $stmt_member_hobbies = $pdo->prepare("SELECT hi.name FROM user_hobbies uh JOIN hobby_items hi ON uh.hobby_item_id = hi.id WHERE uh.user_id = ?");
+        $stmt_member_hobbies->execute([$member['id']]);
+        $member_hobbies_names = $stmt_member_hobbies->fetchAll(PDO::FETCH_COLUMN);
+
+        $member['hobbies_names'] = $member_hobbies_names;
+        $members[] = $member;
+    }
 
 } catch (PDOException $e) {
     header('Location: mypage.php?error=' . urlencode('グループ情報の取得に失敗しました: ' . $e->getMessage()));
@@ -82,12 +102,11 @@ try {
                             <?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?> (ID: <?= htmlspecialchars($member['public_id'], ENT_QUOTES, 'UTF-8') ?>)
                         </a>
                         <?php
-                            $member_hobbies = explode(',', $member['hobbies']);
                             if ($member['id'] == $user_id) {
                                 // ログインユーザー自身の場合、共通の趣味は表示しない
                                 // 趣味リストはmypage.phpで表示されるため、ここでは省略
                             } else {
-                                $common_hobbies = array_intersect($my_hobbies, $member_hobbies);
+                                $common_hobbies = array_intersect($my_hobbies_names, $member['hobbies_names']);
                                 if (!empty($common_hobbies)) {
                                     echo ' <span class="common-hobbies"> (共通の趣味: ' . htmlspecialchars(implode(', ', $common_hobbies), ENT_QUOTES, 'UTF-8') . ')</span>';
                                 } else {
@@ -105,4 +124,3 @@ try {
         <a href="mypage.php">マイページに戻る</a>
     </div>
 </body>
-</html>

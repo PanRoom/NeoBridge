@@ -25,6 +25,7 @@
 
             <button type="submit">ログイン</button>
         </form>
+        <a href="index.php">トップに戻る</a>
     </div>
     <script src="script.js"></script>
 </body>
