@@ -9,7 +9,7 @@ if (empty($public_id)) {
 }
 
 // データベースからユーザー情報を取得
-$stmt = $pdo->prepare("SELECT u.id, u.public_id, u.name FROM users u WHERE u.public_id = ?");
+$stmt = $pdo->prepare("SELECT u.id, u.public_id, u.name, u.bio FROM users u WHERE u.public_id = ?");
 $stmt->execute([$public_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -54,6 +54,11 @@ if (!empty($my_hobby_item_ids)) {
             <p class="user-id"><?= htmlspecialchars($user['public_id'], ENT_QUOTES, 'UTF-8') ?></p>
             <hr>
             <h1><?= htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8') ?></h1>
+            <?php if (!empty($user['bio'])): ?>
+            <div class="bio-section">
+                <p><?= nl2br(htmlspecialchars($user['bio'], ENT_QUOTES, 'UTF-8')) ?></p>
+            </div>
+            <?php endif; ?>
             <h3>趣味</h3>
             <ul>
                 <?php foreach ($user_hobbies_names as $hobby): ?>
@@ -67,6 +72,9 @@ if (!empty($my_hobby_item_ids)) {
                     </li>
                 <?php endforeach; ?>
             </ul>
+            <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != $user['id']): ?>
+                <a href="chat.php?user_id=<?= htmlspecialchars($user['id'], ENT_QUOTES, 'UTF-8') ?>" class="button">チャットする</a>
+            <?php endif; ?>
         </div>
         <a href="mypage.php">マイページに戻る</a>
     </div>

@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // データベースから現在のユーザー情報を取得
-$stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT name, bio FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -62,6 +62,9 @@ foreach ($categories as $category) {
         <form action="update_profile.php" method="post">
             <label for="name">名前:</label>
             <input type="text" id="name" name="name" value="<?= htmlspecialchars($current_name, ENT_QUOTES, 'UTF-8') ?>" required>
+
+            <label for="bio">自己紹介:</label>
+            <textarea id="bio" name="bio" rows="4" placeholder="趣味や好きなことなど自由にご記入ください。"><?= htmlspecialchars($user['bio'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
 
             <label>趣味 (複数選択可):</label>
             <div class="hobby-selection">

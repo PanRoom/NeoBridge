@@ -4,12 +4,23 @@ require 'db_connect.php';
 
 $name = $_POST['name'] ?? '';
 $password = $_POST['password'] ?? '';
+$bio = $_POST['bio'] ?? ''; // Get bio
 $hobby_item_ids = $_POST['hobby_item_ids'] ?? []; // 選択された趣味アイテムのID
+$selected_category_ids = $_POST['category_ids'] ?? []; // 選択されたカテゴリのID
 $new_hobby_name = $_POST['new_hobby_name'] ?? '';
-$hobby_category_id = $_POST['hobby_category_id'] ?? '';
+$new_hobby_category_id = $_POST['new_hobby_category_id'] ?? '';
+$new_hobby_parent_item_id = $_POST['new_hobby_parent_item_id'] ?? '';
 
 if (empty($name) || empty($password)) {
     exit('名前とパスワードは必須です。');
+}
+
+// 個別の趣味アイテムが選択されていないが、カテゴリが選択されている場合
+if (empty($hobby_item_ids) && !empty($selected_category_ids)) {
+    $placeholders = implode(',', array_fill(0, count($selected_category_ids), '?'));
+    $stmt_items_in_categories = $pdo->prepare("SELECT id FROM hobby_items WHERE category_id IN ($placeholders)");
+    $stmt_items_in_categories->execute($selected_category_ids);
+    $hobby_item_ids = $stmt_items_in_categories->fetchAll(PDO::FETCH_COLUMN);
 }
 
 // 新しい趣味が入力された場合、hobby_itemsに追加
@@ -59,9 +70,9 @@ $public_id = substr(bin2hex(random_bytes(4)), 0, 6);
 try {
     // usersテーブルにユーザーを挿入
     $stmt_user = $pdo->prepare(
-        "INSERT INTO users (public_id, name, password_hash) VALUES (?, ?, ?)"
+        "INSERT INTO users (public_id, name, password_hash, bio) VALUES (?, ?, ?, ?)"
     );
-    $stmt_user->execute([$public_id, $name, $password_hash]);
+    $stmt_user->execute([$public_id, $name, $password_hash, $bio]);
     $user_id = $pdo->lastInsertId();
 
     // user_hobbiesテーブルに趣味を挿入

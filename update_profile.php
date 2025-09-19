@@ -11,14 +11,25 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $name = $_POST['name'] ?? '';
 $hobby_item_ids = $_POST['hobby_item_ids'] ?? []; // 選択された趣味アイテムのID
+$selected_category_ids = $_POST['category_ids'] ?? []; // 選択されたカテゴリのID
 $new_hobby_name = $_POST['new_hobby_name'] ?? '';
-$hobby_category_id = $_POST['hobby_category_id'] ?? '';
+$new_hobby_category_id = $_POST['new_hobby_category_id'] ?? '';
+$new_hobby_parent_item_id = $_POST['new_hobby_parent_item_id'] ?? '';
 $password = $_POST['password'] ?? '';
+$bio = $_POST['bio'] ?? ''; // Get bio
 
 // 入力検証
 if (empty($name)) {
     header('Location: edit_profile_form.php?error=' . urlencode('名前は必須です。'));
     exit();
+}
+
+// 個別の趣味アイテムが選択されていないが、カテゴリが選択されている場合
+if (empty($hobby_item_ids) && !empty($selected_category_ids)) {
+    $placeholders = implode(',', array_fill(0, count($selected_category_ids), '?'));
+    $stmt_items_in_categories = $pdo->prepare("SELECT id FROM hobby_items WHERE category_id IN ($placeholders)");
+    $stmt_items_in_categories->execute($selected_category_ids);
+    $hobby_item_ids = $stmt_items_in_categories->fetchAll(PDO::FETCH_COLUMN);
 }
 
 // 新しい趣味が入力された場合、hobby_itemsに追加
@@ -61,14 +72,13 @@ if (!empty($new_hobby_name)) {
 }
 
 if (empty($hobby_item_ids)) {
-    header('Location: edit_profile_form.php?error=' . urlencode('趣味を一つ以上選択するか、新しい趣味を入力してください。'));
-    exit();
+    exit('趣味を一つ以上選択するか、新しい趣味を入力してください。');
 }
 
 try {
-    // usersテーブルのユーザー名を更新
-    $stmt_user_update = $pdo->prepare("UPDATE users SET name = ? WHERE id = ?");
-    $stmt_user_update->execute([$name, $user_id]);
+    // usersテーブルのユーザー名と自己紹介を更新
+    $stmt_user_update = $pdo->prepare("UPDATE users SET name = ?, bio = ? WHERE id = ?");
+    $stmt_user_update->execute([$name, $bio, $user_id]);
 
     // パスワードが入力された場合、ハッシュ化して更新
     if (!empty($password)) {

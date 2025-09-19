@@ -30,6 +30,10 @@ foreach ($categories as $category) {
             <label for="password">パスワード:</label>
             <input type="password" id="password" name="password" required>
 
+            <label for="bio">自己紹介:</label>
+            <textarea id="bio" name="bio" rows="4" placeholder="趣味や好きなことなど自由にご記入ください。"></textarea>
+
+
             <label>趣味 (複数選択可):</label>
             <div class="hobby-selection">
                 <?php foreach ($categories as $category): ?>
